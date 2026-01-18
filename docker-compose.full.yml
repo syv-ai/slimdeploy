@@ -1,0 +1,76 @@
+version: "3.8"
+
+# Full stack: SlimDeploy + Traefik bundled together
+# Use this for quick start when you don't have an existing reverse proxy
+
+services:
+  traefik:
+    image: traefik:v3.0
+    container_name: traefik
+    command:
+      - "--api.dashboard=true"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=slimdeploy"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL:-admin@example.com}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8081:8080"  # Traefik dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik-letsencrypt:/letsencrypt
+    networks:
+      - slimdeploy
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.${BASE_DOMAIN:-localhost}`)"
+      - "traefik.http.routers.traefik.entrypoints=web"
+      - "traefik.http.routers.traefik.service=api@internal"
+
+  slimdeploy:
+    build: .
+    container_name: slimdeploy
+    depends_on:
+      - traefik
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - slimdeploy-data:/app/data
+      - slimdeploy-deployments:/app/deployments
+      - ${SSH_KEY_DIR:-~/.ssh}:/app/.ssh:ro
+    environment:
+      - DOMAIN=${DOMAIN:-slimdeploy.localhost}
+      - BASE_DOMAIN=${BASE_DOMAIN:-localhost}
+      - SLIMDEPLOY_PASSWORD=${SLIMDEPLOY_PASSWORD:-admin}
+      - SSH_KEY_PATH=${SSH_KEY_PATH:-/app/.ssh/id_ed25519}
+      - WATCH_INTERVAL=${WATCH_INTERVAL:-60s}
+      - GIT_SSH_COMMAND=ssh -i /app/.ssh/id_ed25519 -o StrictHostKeyChecking=no
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=slimdeploy"
+      - "traefik.http.routers.slimdeploy.rule=Host(`${DOMAIN:-slimdeploy.localhost}`)"
+      - "traefik.http.routers.slimdeploy.entrypoints=web"
+      - "traefik.http.services.slimdeploy.loadbalancer.server.port=8080"
+    networks:
+      - slimdeploy
+    restart: unless-stopped
+
+networks:
+  slimdeploy:
+    name: slimdeploy
+    driver: bridge
+
+volumes:
+  traefik-letsencrypt:
+    name: slimdeploy-letsencrypt
+  slimdeploy-data:
+    name: slimdeploy-data
+  slimdeploy-deployments:
+    name: slimdeploy-deployments

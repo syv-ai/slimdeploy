@@ -34,40 +34,47 @@ A lightweight, self-hosted Docker deployment platform. Deploy containers from Do
 ### Prerequisites
 
 - Docker and Docker Compose
-- A domain pointing to your server (for Traefik routing)
+- A domain pointing to your server (for production)
 
-### 1. Clone and Configure
+### Option A: Full Stack (Recommended for new setups)
+
+Includes Traefik reverse proxy - one command to start everything:
 
 ```bash
 git clone https://github.com/syv-ai/slimdeploy.git
 cd slimdeploy
 cp .env.example .env
+# Edit .env with your settings
+
+docker compose -f docker-compose.full.yml up -d
 ```
+
+This starts both Traefik and SlimDeploy. Visit `http://slimdeploy.localhost` (or your configured domain).
+
+### Option B: SlimDeploy Only (If you have existing Traefik/nginx)
+
+```bash
+git clone https://github.com/syv-ai/slimdeploy.git
+cd slimdeploy
+cp .env.example .env
+
+# Start Traefik first (skip if you have one)
+cd traefik && docker compose up -d && cd ..
+
+# Start SlimDeploy
+docker compose up -d
+```
+
+### Configuration
 
 Edit `.env` with your settings:
 
 ```env
-SLIMDEPLOY_DOMAIN=slimdeploy.yourdomain.com
-SLIMDEPLOY_BASE_DOMAIN=yourdomain.com
+DOMAIN=slimdeploy.yourdomain.com
+BASE_DOMAIN=yourdomain.com
 SLIMDEPLOY_PASSWORD=your-secure-password
-LETSENCRYPT_EMAIL=you@example.com
+ACME_EMAIL=you@example.com
 ```
-
-### 2. Start Traefik (if not already running)
-
-```bash
-cd traefik
-docker compose up -d
-cd ..
-```
-
-### 3. Start SlimDeploy
-
-```bash
-docker compose up -d
-```
-
-Visit `https://slimdeploy.yourdomain.com` and log in with your configured password.
 
 ## Development
 
