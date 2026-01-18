@@ -1,0 +1,172 @@
+{{define "layout"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}} - SlimDeploy</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        sand: {
+                            50: '#FDFCFB',
+                            100: '#F9F7F4',
+                            200: '#F3EDE6',
+                            300: '#E6DDD1',
+                            400: '#D4C5B5',
+                        },
+                        terracotta: {
+                            400: '#E07B54',
+                            500: '#D4623A',
+                            600: '#C25432',
+                        },
+                        forest: {
+                            500: '#2D5A47',
+                            600: '#234A3A',
+                            700: '#1A3B2E',
+                        },
+                        charcoal: {
+                            400: '#6B6560',
+                            500: '#4A4541',
+                            600: '#3A3632',
+                            700: '#2A2724',
+                            800: '#1E1C1A',
+                            900: '#141312',
+                        }
+                    },
+                    fontFamily: {
+                        display: ['Fraunces', 'Georgia', 'serif'],
+                        sans: ['DM Sans', 'system-ui', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'soft': '0 2px 8px -2px rgba(0,0,0,0.08), 0 4px 16px -4px rgba(0,0,0,0.12)',
+                        'medium': '0 4px 12px -2px rgba(0,0,0,0.1), 0 8px 24px -4px rgba(0,0,0,0.15)',
+                        'lifted': '0 8px 24px -4px rgba(0,0,0,0.12), 0 16px 40px -8px rgba(0,0,0,0.18)',
+                        'inner-soft': 'inset 0 2px 4px 0 rgba(0,0,0,0.04)',
+                        'glow': '0 0 20px -5px rgba(224, 123, 84, 0.4)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        [x-cloak] { display: none !important; }
+        .htmx-request .loading-indicator { display: inline-block; }
+        .loading-indicator { display: none; }
+
+        /* Grain texture overlay */
+        .grain::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            opacity: 0.03;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+            z-index: 1000;
+        }
+
+        /* Smooth animations */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-in {
+            animation: fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        /* Status pulse */
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+            50% { opacity: 0.8; box-shadow: 0 0 0 4px rgba(34, 197, 94, 0); }
+        }
+        .pulse-glow {
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+
+        /* Glass card effect */
+        .glass {
+            background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        /* Focus styles */
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(212, 98, 58, 0.15), 0 0 0 1px rgba(212, 98, 58, 0.3);
+        }
+
+        /* Smooth hover transitions */
+        .hover-lift {
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
+        }
+        .hover-lift:hover {
+            transform: translateY(-3px);
+        }
+
+        /* Gradient text */
+        .gradient-text {
+            background: linear-gradient(135deg, #2A2724 0%, #4A4541 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Decorative corner */
+        .corner-accent::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100px;
+            height: 100px;
+            background: radial-gradient(circle at top right, rgba(224, 123, 84, 0.08) 0%, transparent 70%);
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-sand-100 via-sand-50 to-sand-100 text-charcoal-700 min-h-screen font-sans antialiased grain">
+    {{template "content" .}}
+</body>
+</html>
+{{end}}
+
+{{define "nav"}}
+<nav class="border-b border-sand-300/60 bg-sand-50/70 backdrop-blur-md sticky top-0 z-50">
+    <div class="max-w-6xl mx-auto px-6 lg:px-8">
+        <div class="flex items-center justify-between h-16">
+            <a href="/" class="flex items-center space-x-3 group">
+                <div class="w-9 h-9 bg-gradient-to-br from-charcoal-700 to-charcoal-900 rounded-xl flex items-center justify-center shadow-soft group-hover:shadow-medium transition-shadow">
+                    <svg class="w-4 h-4 text-sand-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2"></path>
+                    </svg>
+                </div>
+                <span class="font-display text-xl font-medium text-charcoal-800">SlimDeploy</span>
+            </a>
+            <div class="flex items-center space-x-5">
+                <a href="/projects/new" class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-charcoal-800 to-charcoal-900 text-sand-100 rounded-xl text-sm font-medium shadow-soft hover:shadow-medium hover:-translate-y-0.5 transition-all">
+                    <svg class="w-4 h-4 mr-2 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    New Project
+                </a>
+                <form action="/logout" method="POST" class="inline">
+                    <button type="submit" class="text-charcoal-400 hover:text-charcoal-700 text-sm font-medium transition-colors">
+                        Sign out
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</nav>
+{{end}}

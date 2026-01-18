@@ -1,0 +1,37 @@
+version: "3.8"
+
+services:
+  slimdeploy:
+    build: .
+    container_name: slimdeploy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - slimdeploy-data:/app/data
+      - slimdeploy-deployments:/app/deployments
+      - ${SSH_KEY_DIR:-~/.ssh}:/app/.ssh:ro
+    environment:
+      - DOMAIN=${DOMAIN:-slimdeploy.localhost}
+      - BASE_DOMAIN=${BASE_DOMAIN:-localhost}
+      - SLIMDEPLOY_PASSWORD=${SLIMDEPLOY_PASSWORD:-admin}
+      - SSH_KEY_PATH=${SSH_KEY_PATH:-/app/.ssh/id_ed25519}
+      - WATCH_INTERVAL=${WATCH_INTERVAL:-60s}
+      - GIT_SSH_COMMAND=ssh -i /app/.ssh/id_ed25519 -o StrictHostKeyChecking=no
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=slimdeploy"
+      - "traefik.http.routers.slimdeploy.rule=Host(`${DOMAIN:-slimdeploy.localhost}`)"
+      - "traefik.http.routers.slimdeploy.entrypoints=web"
+      - "traefik.http.services.slimdeploy.loadbalancer.server.port=8080"
+    networks:
+      - slimdeploy
+    restart: unless-stopped
+
+networks:
+  slimdeploy:
+    external: true
+
+volumes:
+  slimdeploy-data:
+    name: slimdeploy-data
+  slimdeploy-deployments:
+    name: slimdeploy-deployments

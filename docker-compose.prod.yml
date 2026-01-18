@@ -1,0 +1,19 @@
+version: "3.8"
+
+# Production configuration - use with:
+# docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+services:
+  slimdeploy:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=slimdeploy"
+      # HTTP router (redirects to HTTPS)
+      - "traefik.http.routers.slimdeploy-http.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.slimdeploy-http.entrypoints=web"
+      - "traefik.http.routers.slimdeploy-http.middlewares=redirect-to-https@docker"
+      # HTTPS router
+      - "traefik.http.routers.slimdeploy.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.slimdeploy.entrypoints=websecure"
+      - "traefik.http.routers.slimdeploy.tls.certresolver=letsencrypt"
+      - "traefik.http.services.slimdeploy.loadbalancer.server.port=8080"

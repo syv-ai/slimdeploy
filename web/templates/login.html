@@ -1,0 +1,54 @@
+{{template "layout" .}}
+
+{{define "content"}}
+<div class="min-h-screen flex items-center justify-center px-6 relative overflow-hidden">
+    <!-- Decorative background elements -->
+    <div class="absolute inset-0 overflow-hidden pointer-events-none">
+        <div class="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-terracotta-400/10 to-transparent rounded-full blur-3xl"></div>
+        <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-forest-500/8 to-transparent rounded-full blur-3xl"></div>
+    </div>
+
+    <div class="w-full max-w-md relative animate-in">
+        <!-- Card with depth -->
+        <div class="glass rounded-3xl shadow-lifted p-10 relative overflow-hidden border border-white/60">
+            <!-- Subtle corner accent -->
+            <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-terracotta-400/10 to-transparent rounded-bl-full"></div>
+
+            <!-- Logo and Title -->
+            <div class="text-center mb-10 relative">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-charcoal-700 to-charcoal-900 rounded-2xl mb-6 shadow-medium">
+                    <svg class="w-8 h-8 text-sand-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2"></path>
+                    </svg>
+                </div>
+                <h1 class="font-display text-3xl font-medium text-charcoal-800 mb-2">SlimDeploy</h1>
+                <p class="text-charcoal-400 text-sm">Sign in to your deployment dashboard</p>
+            </div>
+
+            {{if .Error}}
+            <div class="mb-6 px-4 py-3 bg-gradient-to-r from-red-50 to-red-100/50 border border-red-200/60 text-red-700 rounded-xl text-sm shadow-inner-soft">
+                {{.Error}}
+            </div>
+            {{end}}
+
+            <form action="/login" method="POST" class="space-y-6">
+                <div>
+                    <label for="password" class="block text-sm font-medium text-charcoal-600 mb-2">Password</label>
+                    <input type="password" name="password" id="password" required autofocus
+                        class="w-full px-4 py-3.5 bg-white/80 border border-sand-300 rounded-xl text-charcoal-800 placeholder-charcoal-400/50 shadow-inner-soft transition-all hover:border-sand-400 hover:bg-white"
+                        placeholder="Enter your password">
+                </div>
+
+                <button type="submit"
+                    class="w-full py-3.5 px-4 bg-gradient-to-r from-charcoal-800 to-charcoal-900 text-sand-100 rounded-xl font-medium shadow-medium hover:shadow-lifted hover:-translate-y-0.5 transition-all">
+                    Sign in
+                </button>
+            </form>
+        </div>
+
+        <p class="mt-8 text-center text-xs text-charcoal-400">
+            Lightweight deployment platform for Docker
+        </p>
+    </div>
+</div>
+{{end}}

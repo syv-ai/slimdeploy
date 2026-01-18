@@ -1,0 +1,871 @@
+{{template "layout" .}}
+
+{{define "content"}}
+{{template "nav" .}}
+
+<style>
+    /* Wizard transitions */
+    .wizard-step {
+        position: absolute;
+        width: 100%;
+        opacity: 0;
+        pointer-events: none;
+        transform: translateX(40px);
+        transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .wizard-step.active {
+        position: relative;
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateX(0);
+    }
+    .wizard-step.exit-left {
+        transform: translateX(-40px);
+    }
+    .wizard-step.enter-right {
+        transform: translateX(40px);
+    }
+
+    /* Progress indicator */
+    .progress-step {
+        transition: all 0.3s ease;
+    }
+    .progress-step .step-circle {
+        transition: all 0.3s ease;
+    }
+    .progress-step.completed .step-circle {
+        background: linear-gradient(135deg, #2A2724 0%, #3A3632 100%);
+        color: #F9F7F4;
+        border-color: transparent;
+    }
+    .progress-step.current .step-circle {
+        border-color: #D4623A;
+        color: #D4623A;
+        box-shadow: 0 0 0 4px rgba(212, 98, 58, 0.15);
+    }
+    .progress-step.upcoming .step-circle {
+        border-color: #E6DDD1;
+        color: #6B6560;
+    }
+
+    /* Progress line */
+    .progress-line {
+        transition: background 0.3s ease;
+    }
+    .progress-line.completed {
+        background: linear-gradient(90deg, #2A2724 0%, #3A3632 100%);
+    }
+</style>
+
+<main class="max-w-2xl mx-auto px-6 lg:px-8 py-12">
+    <!-- Header -->
+    <div class="mb-8 animate-in text-center">
+        <a href="/" class="inline-flex items-center text-charcoal-400 hover:text-charcoal-700 text-sm font-medium transition-colors mb-6 group">
+            <svg class="w-4 h-4 mr-1.5 group-hover:-translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+            Back to Projects
+        </a>
+        <h1 class="font-display text-4xl font-medium text-charcoal-800">{{if .IsNew}}New Project{{else}}Edit {{.Project.Name}}{{end}}</h1>
+        <p class="text-charcoal-400 mt-2">{{if .IsNew}}Let's set up your deployment step by step{{else}}Update your project configuration{{end}}</p>
+    </div>
+
+    {{if .Error}}
+    <div class="mb-8 px-5 py-4 bg-gradient-to-r from-red-50 to-red-100/50 border border-red-200/60 rounded-2xl shadow-inner-soft animate-in">
+        <div class="flex items-start">
+            <svg class="w-5 h-5 text-red-500 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <p class="text-red-700 text-sm">{{.Error}}</p>
+        </div>
+    </div>
+    {{end}}
+
+    {{if .IsNew}}
+    <!-- Progress Indicator -->
+    <div class="mb-10 animate-in">
+        <div class="flex items-center justify-between relative">
+            <!-- Progress lines (background) -->
+            <div class="absolute top-5 left-0 right-0 h-0.5 bg-sand-200 mx-10"></div>
+
+            <!-- Step 1 -->
+            <div class="progress-step current relative z-10 flex flex-col items-center" data-step="1" onclick="goToStep(1)">
+                <div class="step-circle w-10 h-10 rounded-full bg-white border-2 flex items-center justify-center font-medium text-sm cursor-pointer hover:scale-105 transition-transform">
+                    <span class="step-number">1</span>
+                    <svg class="step-check w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+                <span class="text-xs font-medium mt-2 text-charcoal-600">Type</span>
+            </div>
+
+            <!-- Line 1-2 -->
+            <div class="progress-line flex-1 h-0.5 bg-sand-200 relative z-0" data-line="1"></div>
+
+            <!-- Step 2 -->
+            <div class="progress-step upcoming relative z-10 flex flex-col items-center" data-step="2" onclick="goToStep(2)">
+                <div class="step-circle w-10 h-10 rounded-full bg-white border-2 flex items-center justify-center font-medium text-sm cursor-pointer hover:scale-105 transition-transform">
+                    <span class="step-number">2</span>
+                    <svg class="step-check w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+                <span class="text-xs font-medium mt-2 text-charcoal-400">Source</span>
+            </div>
+
+            <!-- Line 2-3 -->
+            <div class="progress-line flex-1 h-0.5 bg-sand-200 relative z-0" data-line="2"></div>
+
+            <!-- Step 3 -->
+            <div class="progress-step upcoming relative z-10 flex flex-col items-center" data-step="3" onclick="goToStep(3)">
+                <div class="step-circle w-10 h-10 rounded-full bg-white border-2 flex items-center justify-center font-medium text-sm cursor-pointer hover:scale-105 transition-transform">
+                    <span class="step-number">3</span>
+                    <svg class="step-check w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+                <span class="text-xs font-medium mt-2 text-charcoal-400">Config</span>
+            </div>
+
+            <!-- Line 3-4 -->
+            <div class="progress-line flex-1 h-0.5 bg-sand-200 relative z-0" data-line="3"></div>
+
+            <!-- Step 4 -->
+            <div class="progress-step upcoming relative z-10 flex flex-col items-center" data-step="4" onclick="goToStep(4)">
+                <div class="step-circle w-10 h-10 rounded-full bg-white border-2 flex items-center justify-center font-medium text-sm cursor-pointer hover:scale-105 transition-transform">
+                    <span class="step-number">4</span>
+                    <svg class="step-check w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+                <span class="text-xs font-medium mt-2 text-charcoal-400">Network</span>
+            </div>
+
+            <!-- Line 4-5 -->
+            <div class="progress-line flex-1 h-0.5 bg-sand-200 relative z-0" data-line="4"></div>
+
+            <!-- Step 5 -->
+            <div class="progress-step upcoming relative z-10 flex flex-col items-center" data-step="5" onclick="goToStep(5)">
+                <div class="step-circle w-10 h-10 rounded-full bg-white border-2 flex items-center justify-center font-medium text-sm cursor-pointer hover:scale-105 transition-transform">
+                    <span class="step-number">5</span>
+                    <svg class="step-check w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+                <span class="text-xs font-medium mt-2 text-charcoal-400">Review</span>
+            </div>
+        </div>
+    </div>
+
+    <form id="wizard-form" action="/projects" method="POST">
+        <div class="relative overflow-hidden">
+            <!-- Step 1: Deploy Type -->
+            <div class="wizard-step active" data-step="1">
+                <section class="glass rounded-2xl shadow-soft border border-white/60 overflow-hidden relative">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-terracotta-400/5 to-transparent pointer-events-none"></div>
+                    <div class="px-8 py-6 border-b border-sand-200/60 bg-gradient-to-r from-sand-50/50 to-transparent">
+                        <h2 class="font-display text-2xl font-medium text-charcoal-800">Choose Deploy Type</h2>
+                        <p class="text-sm text-charcoal-400 mt-1">How would you like to deploy your application?</p>
+                    </div>
+                    <div class="p-8">
+                        <div class="grid grid-cols-1 gap-4">
+                            <label class="relative flex items-start p-6 bg-white/60 border-2 border-sand-300 rounded-xl cursor-pointer transition-all hover:border-terracotta-400/50 hover:bg-white has-[:checked]:border-charcoal-800 has-[:checked]:bg-charcoal-800 has-[:checked]:text-sand-100 group">
+                                <input type="radio" name="deploy_type" value="image" checked class="sr-only" onchange="updateDeployType()">
+                                <div class="flex-shrink-0 w-12 h-12 bg-sand-200 group-has-[:checked]:bg-sand-100/20 rounded-xl flex items-center justify-center mr-5">
+                                    <svg class="w-6 h-6 text-charcoal-600 group-has-[:checked]:text-sand-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <span class="block text-lg font-medium">Docker Image</span>
+                                    <span class="block text-sm mt-1 opacity-70">Pull and run a pre-built image from Docker Hub or any registry</span>
+                                </div>
+                            </label>
+                            <label class="relative flex items-start p-6 bg-white/60 border-2 border-sand-300 rounded-xl cursor-pointer transition-all hover:border-terracotta-400/50 hover:bg-white has-[:checked]:border-charcoal-800 has-[:checked]:bg-charcoal-800 has-[:checked]:text-sand-100 group">
+                                <input type="radio" name="deploy_type" value="dockerfile" class="sr-only" onchange="updateDeployType()">
+                                <div class="flex-shrink-0 w-12 h-12 bg-sand-200 group-has-[:checked]:bg-sand-100/20 rounded-xl flex items-center justify-center mr-5">
+                                    <svg class="w-6 h-6 text-charcoal-600 group-has-[:checked]:text-sand-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <span class="block text-lg font-medium">Dockerfile</span>
+                                    <span class="block text-sm mt-1 opacity-70">Build and run from a Dockerfile in your Git repository</span>
+                                </div>
+                            </label>
+                            <label class="relative flex items-start p-6 bg-white/60 border-2 border-sand-300 rounded-xl cursor-pointer transition-all hover:border-terracotta-400/50 hover:bg-white has-[:checked]:border-charcoal-800 has-[:checked]:bg-charcoal-800 has-[:checked]:text-sand-100 group">
+                                <input type="radio" name="deploy_type" value="compose" class="sr-only" onchange="updateDeployType()">
+                                <div class="flex-shrink-0 w-12 h-12 bg-sand-200 group-has-[:checked]:bg-sand-100/20 rounded-xl flex items-center justify-center mr-5">
+                                    <svg class="w-6 h-6 text-charcoal-600 group-has-[:checked]:text-sand-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <span class="block text-lg font-medium">Docker Compose</span>
+                                    <span class="block text-sm mt-1 opacity-70">Deploy multi-container apps from a Git repository with compose file</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Step 2: Source -->
+            <div class="wizard-step" data-step="2">
+                <section class="glass rounded-2xl shadow-soft border border-white/60 overflow-hidden relative">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-forest-500/5 to-transparent pointer-events-none"></div>
+                    <div class="px-8 py-6 border-b border-sand-200/60 bg-gradient-to-r from-sand-50/50 to-transparent">
+                        <h2 class="font-display text-2xl font-medium text-charcoal-800">Configure Source</h2>
+                        <p class="text-sm text-charcoal-400 mt-1" id="source-description">Specify the Docker image to deploy</p>
+                    </div>
+                    <div class="p-8 space-y-6">
+                        <!-- Image fields (shown for image type) -->
+                        <div id="image-fields">
+                            <label for="image" class="block text-sm font-medium text-charcoal-700 mb-2">Docker Image</label>
+                            <input type="text" name="image" id="image" value="{{.Project.Image}}"
+                                class="w-full px-4 py-3 bg-white/80 border border-sand-300 rounded-xl text-charcoal-800 placeholder-charcoal-400/50 shadow-inner-soft transition-all hover:border-sand-400 hover:bg-white font-mono text-sm"
+                                placeholder="nginx:latest">
+                            <p class="mt-2 text-xs text-charcoal-400">Format: image:tag or registry/image:tag (e.g., nginx:alpine, ghcr.io/user/app:v1.0)</p>
+                        </div>
+
+                        <!-- Git fields (shown for compose type) -->
+                        <div id="git-fields" class="hidden space-y-6">
+                            <div>
+                                <label for="git_url" class="block text-sm font-medium text-charcoal-700 mb-2">Git Repository</label>
+                                <input type="text" name="git_url" id="git_url" value="{{.Project.GitURL}}"
+                                    class="w-full px-4 py-3 bg-white/80 border border-sand-300 rounded-xl text-charcoal-800 placeholder-charcoal-400/50 shadow-inner-soft transition-all hover:border-sand-400 hover:bg-white font-mono text-sm"
+                                    placeholder="https://github.com/user/repo.git">
+                                <p class="mt-2 text-xs text-charcoal-400" id="git-url-hint">HTTPS or SSH URL to your repository</p>
+                            </div>
+                            <div>
+                                <label for="branch" class="block text-sm font-medium text-charcoal-700 mb-2">Branch</label>
+                                <input type="text" name="branch" id="branch" value="{{if and .Project.Branch (ne .Project.Branch "main")}}{{.Project.Branch}}{{end}}"
+                                    class="w-full px-4 py-3 bg-white/80 border border-sand-300 rounded-xl text-charcoal-800 placeholder-charcoal-400/50 shadow-inner-soft transition-all hover:border-sand-400 hover:bg-white"
+                                    placeholder="main (auto-detected if empty)">
+                                <p class="mt-2 text-xs text-charcoal-400">Leave empty to auto-detect the default branch</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Step 3: Configuration -->
+            <div class="wizard-step" data-step="3">
+                <section class="glass rounded-2xl shadow-soft border border-white/60 overflow-hidden relative">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-terracotta-400/5 to-transparent pointer-events-none"></div>
+                    <div class="px-8 py-6 border-b border-sand-200/60 bg-gradient-to-r from-sand-50/50 to-transparent">
+                        <h2 class="font-display text-2xl font-medium text-charcoal-800">Project Configuration</h2>
+                        <p class="text-sm text-charcoal-400 mt-1">Name your project and configure settings</p>
+                    </div>
+                    <div class="p-8 space-y-6">
+                        <div>
+                            <label for="name" class="block text-sm font-medium text-charcoal-700 mb-2">Project Name <span class="text-terracotta-500">*</span></label>
+                            <input type="text" name="name" id="name" value="{{.Project.Name}}" required
+                                class="w-full px-4 py-3 bg-white/80 border border-sand-300 rounded-xl text-charcoal-800 placeholder-charcoal-400/50 shadow-inner-soft transition-all hover:border-sand-400 hover:bg-white"
+                                placeholder="my-awesome-project">
+                            <p class="mt-2 text-xs text-charcoal-400">Used for container names and URLs. Use lowercase letters, numbers, and hyphens.</p>
+                        </div>
+                        <div>
+                            <label for="port" class="block text-sm font-medium text-charcoal-700 mb-2">Container Port</label>
+                            <input type="number" name="port" id="port" value="{{.Project.Port}}" min="1" max="65535"
+                                class="w-full px-4 py-3 bg-white/80 border border-sand-300 rounded-xl text-charcoal-800 placeholder-charcoal-400/50 shadow-inner-soft transition-all hover:border-sand-400 hover:bg-white"
+                                placeholder="80">
+                            <p class="mt-2 text-xs text-charcoal-400">The port your application listens on. Common: 80, 3000, 8080</p>
+                        </div>
+                        <div>
+                            <label for="env_vars" class="block text-sm font-medium text-charcoal-700 mb-2">Environment Variables</label>
+                            <textarea name="env_vars" id="env_vars" rows="4"
+                                class="w-full px-4 py-3 bg-white/80 border border-sand-300 rounded-xl text-charcoal-800 placeholder-charcoal-400/50 shadow-inner-soft transition-all hover:border-sand-400 hover:bg-white font-mono text-sm resize-none"
+                                placeholder="DATABASE_URL=postgres://...&#10;API_KEY=secret&#10;NODE_ENV=production">{{range $key, $value := .Project.EnvVars}}{{$key}}={{$value}}
+{{end}}</textarea>
+                            <p class="mt-2 text-xs text-charcoal-400">One variable per line in KEY=value format</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Step 4: Networking -->
+            <div class="wizard-step" data-step="4">
+                <section class="glass rounded-2xl shadow-soft border border-white/60 overflow-hidden relative">
+                    <div class="px-8 py-6 border-b border-sand-200/60 bg-gradient-to-r from-sand-50/50 to-transparent">
+                        <h2 class="font-display text-2xl font-medium text-charcoal-800">Networking</h2>
+                        <p class="text-sm text-charcoal-400 mt-1">Configure how your app is accessed</p>
+                    </div>
+                    <div class="p-8 space-y-6">
+                        <div>
+                            <label for="domain" class="block text-sm font-medium text-charcoal-700 mb-2">Custom Domain</label>
+                            <input type="text" name="domain" id="domain" value="{{.Project.Domain}}"
+                                class="w-full px-4 py-3 bg-white/80 border border-sand-300 rounded-xl text-charcoal-800 placeholder-charcoal-400/50 shadow-inner-soft transition-all hover:border-sand-400 hover:bg-white"
+                                placeholder="myapp.example.com">
+                            <p class="mt-2 text-xs text-charcoal-400">Point your domain's DNS to this server, or leave empty to use auto-subdomain</p>
+                        </div>
+
+                        <label class="flex items-start p-5 bg-white/60 border-2 border-sand-300 rounded-xl cursor-pointer transition-all hover:border-terracotta-400/50 hover:bg-white has-[:checked]:border-terracotta-500 has-[:checked]:bg-terracotta-50/50">
+                            <input type="checkbox" name="use_subdomain" id="use_subdomain" {{if .Project.UseSubdomain}}checked{{end}}
+                                class="w-5 h-5 mt-0.5 text-terracotta-500 bg-white border-sand-400 rounded focus:ring-terracotta-500">
+                            <div class="ml-4">
+                                <span class="block font-medium text-charcoal-700">Use auto-subdomain</span>
+                                <span class="block text-sm text-charcoal-400 mt-1">Available at <code class="px-1.5 py-0.5 bg-sand-200 rounded text-xs font-mono"><span id="subdomain-preview">project-name</span>.{{.BaseDomain}}</code></span>
+                            </div>
+                        </label>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Step 5: Review -->
+            <div class="wizard-step" data-step="5">
+                <section class="glass rounded-2xl shadow-soft border border-white/60 overflow-hidden relative">
+                    <div class="px-8 py-6 border-b border-sand-200/60 bg-gradient-to-r from-sand-50/50 to-transparent">
+                        <h2 class="font-display text-2xl font-medium text-charcoal-800">Review & Deploy</h2>
+                        <p class="text-sm text-charcoal-400 mt-1">Confirm your settings before creating the project</p>
+                    </div>
+                    <div class="p-8 space-y-4">
+                        <!-- Summary cards -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <!-- Deploy Type -->
+                            <div class="bg-white/60 rounded-xl p-4 border border-sand-200">
+                                <div class="flex items-center mb-2">
+                                    <svg class="w-4 h-4 text-charcoal-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2"></path>
+                                    </svg>
+                                    <span class="text-xs font-medium text-charcoal-400 uppercase tracking-wide">Deploy Type</span>
+                                </div>
+                                <p class="font-medium text-charcoal-700" id="review-type">Docker Image</p>
+                            </div>
+
+                            <!-- Source -->
+                            <div class="bg-white/60 rounded-xl p-4 border border-sand-200">
+                                <div class="flex items-center mb-2">
+                                    <svg class="w-4 h-4 text-charcoal-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+                                    </svg>
+                                    <span class="text-xs font-medium text-charcoal-400 uppercase tracking-wide">Source</span>
+                                </div>
+                                <p class="font-medium text-charcoal-700 font-mono text-sm truncate" id="review-source">-</p>
+                            </div>
+
+                            <!-- Project Name -->
+                            <div class="bg-white/60 rounded-xl p-4 border border-sand-200">
+                                <div class="flex items-center mb-2">
+                                    <svg class="w-4 h-4 text-charcoal-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
+                                    </svg>
+                                    <span class="text-xs font-medium text-charcoal-400 uppercase tracking-wide">Project Name</span>
+                                </div>
+                                <p class="font-medium text-charcoal-700" id="review-name">-</p>
+                            </div>
+
+                            <!-- Port -->
+                            <div class="bg-white/60 rounded-xl p-4 border border-sand-200">
+                                <div class="flex items-center mb-2">
+                                    <svg class="w-4 h-4 text-charcoal-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.14 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"></path>
+                                    </svg>
+                                    <span class="text-xs font-medium text-charcoal-400 uppercase tracking-wide">Port</span>
+                                </div>
+                                <p class="font-medium text-charcoal-700" id="review-port">80</p>
+                            </div>
+                        </div>
+
+                        <!-- Domain -->
+                        <div class="bg-white/60 rounded-xl p-4 border border-sand-200">
+                            <div class="flex items-center mb-2">
+                                <svg class="w-4 h-4 text-charcoal-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path>
+                                </svg>
+                                <span class="text-xs font-medium text-charcoal-400 uppercase tracking-wide">Access URL</span>
+                            </div>
+                            <p class="font-medium text-charcoal-700 font-mono text-sm" id="review-domain">-</p>
+                        </div>
+
+                        <!-- Environment Variables -->
+                        <div class="bg-white/60 rounded-xl p-4 border border-sand-200" id="review-env-container">
+                            <div class="flex items-center mb-2">
+                                <svg class="w-4 h-4 text-charcoal-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+                                </svg>
+                                <span class="text-xs font-medium text-charcoal-400 uppercase tracking-wide">Environment Variables</span>
+                            </div>
+                            <p class="font-medium text-charcoal-700 text-sm" id="review-env">None configured</p>
+                        </div>
+
+                        <!-- Auto-deploy toggle -->
+                        <div class="pt-4 border-t border-sand-200">
+                            <label class="flex items-start p-5 bg-white/60 border-2 border-sand-300 rounded-xl cursor-pointer transition-all hover:border-terracotta-400/50 hover:bg-white has-[:checked]:border-terracotta-500 has-[:checked]:bg-terracotta-50/50">
+                                <input type="checkbox" name="auto_deploy" id="auto_deploy" {{if .Project.AutoDeploy}}checked{{end}}
+                                    class="w-5 h-5 mt-0.5 text-terracotta-500 bg-white border-sand-400 rounded focus:ring-terracotta-500">
+                                <div class="ml-4">
+                                    <span class="block font-medium text-charcoal-700">Enable auto-deploy</span>
+                                    <span class="block text-sm text-charcoal-400 mt-1">Automatically redeploy when changes are pushed to the repository</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="flex justify-between items-center pt-8">
+            <button type="button" id="btn-back" onclick="prevStep()" class="hidden px-6 py-3 text-charcoal-600 hover:text-charcoal-800 font-medium transition-colors inline-flex items-center">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+                Back
+            </button>
+            <div id="btn-spacer" class="flex-1"></div>
+            <button type="button" id="btn-next" onclick="nextStep()"
+                class="px-8 py-3 bg-gradient-to-r from-charcoal-800 to-charcoal-900 text-sand-100 rounded-xl font-medium shadow-medium hover:shadow-lifted hover:-translate-y-0.5 transition-all inline-flex items-center">
+                Next
+                <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                </svg>
+            </button>
+            <button type="submit" id="btn-submit" class="hidden px-8 py-3 bg-gradient-to-r from-terracotta-500 to-terracotta-600 text-sand-100 rounded-xl font-medium shadow-medium hover:shadow-lifted hover:-translate-y-0.5 transition-all inline-flex items-center">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                Create Project
+            </button>
+        </div>
+    </form>
+    {{else}}
+    <!-- Edit mode: show regular form -->
+    <form action="/projects/{{.Project.ID}}" method="POST" class="space-y-8">
+        <!-- Basic Settings -->
+        <section class="glass rounded-2xl shadow-soft border border-white/60 overflow-hidden animate-in relative">
+            <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-terracotta-400/5 to-transparent pointer-events-none"></div>
+            <div class="px-8 py-5 border-b border-sand-200/60 bg-gradient-to-r from-sand-50/50 to-transparent">
+                <h2 class="font-display text-xl font-medium text-charcoal-800">Basics</h2>
+                <p class="text-sm text-charcoal-400 mt-1">Essential project information</p>
+            </div>
+            <div class="p-8 space-y-8">
+                <div class="grid grid-cols-2 gap-8">
+                    <div class="col-span-2 lg:col-span-1">
+                        <label for="name" class="block text-sm font-medium text-charcoal-700 mb-2">Project Name</label>
+                        <input type="text" name="name" id="name" value="{{.Project.Name}}" required
+                            class="w-full px-4 py-3 bg-white/80 border border-sand-300 rounded-xl text-charcoal-800 placeholder-charcoal-400/50 shadow-inner-soft transition-all hover:border-sand-400 hover:bg-white"
+                            placeholder="my-awesome-project">
+                    </div>
+                    <div class="col-span-2 lg:col-span-1">
+                        <label for="port" class="block text-sm font-medium text-charcoal-700 mb-2">Container Port</label>
+                        <input type="number" name="port" id="port" value="{{.Project.Port}}" min="1" max="65535"
+                            class="w-full px-4 py-3 bg-white/80 border border-sand-300 rounded-xl text-charcoal-800 placeholder-charcoal-400/50 shadow-inner-soft transition-all hover:border-sand-400 hover:bg-white"
+                            placeholder="80">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-charcoal-700 mb-3">Deploy Type</label>
+                    <div class="grid grid-cols-3 gap-4">
+                        <label class="relative flex flex-col items-center p-4 bg-white/60 border-2 border-sand-300 rounded-xl cursor-pointer transition-all hover:border-terracotta-400/50 hover:bg-white has-[:checked]:border-charcoal-800 has-[:checked]:bg-charcoal-800 has-[:checked]:text-sand-100 group">
+                            <input type="radio" name="deploy_type" value="image" {{if eq .Project.DeployType "image"}}checked{{end}} class="sr-only">
+                            <div class="w-10 h-10 bg-sand-200 group-has-[:checked]:bg-sand-100/20 rounded-lg flex items-center justify-center mb-2">
+                                <svg class="w-5 h-5 text-charcoal-600 group-has-[:checked]:text-sand-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2"></path>
+                                </svg>
+                            </div>
+                            <span class="block font-medium text-sm text-center">Image</span>
+                        </label>
+                        <label class="relative flex flex-col items-center p-4 bg-white/60 border-2 border-sand-300 rounded-xl cursor-pointer transition-all hover:border-terracotta-400/50 hover:bg-white has-[:checked]:border-charcoal-800 has-[:checked]:bg-charcoal-800 has-[:checked]:text-sand-100 group">
+                            <input type="radio" name="deploy_type" value="dockerfile" {{if eq .Project.DeployType "dockerfile"}}checked{{end}} class="sr-only">
+                            <div class="w-10 h-10 bg-sand-200 group-has-[:checked]:bg-sand-100/20 rounded-lg flex items-center justify-center mb-2">
+                                <svg class="w-5 h-5 text-charcoal-600 group-has-[:checked]:text-sand-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                            </div>
+                            <span class="block font-medium text-sm text-center">Dockerfile</span>
+                        </label>
+                        <label class="relative flex flex-col items-center p-4 bg-white/60 border-2 border-sand-300 rounded-xl cursor-pointer transition-all hover:border-terracotta-400/50 hover:bg-white has-[:checked]:border-charcoal-800 has-[:checked]:bg-charcoal-800 has-[:checked]:text-sand-100 group">
+                            <input type="radio" name="deploy_type" value="compose" {{if eq .Project.DeployType "compose"}}checked{{end}} class="sr-only">
+                            <div class="w-10 h-10 bg-sand-200 group-has-[:checked]:bg-sand-100/20 rounded-lg flex items-center justify-center mb-2">
+                                <svg class="w-5 h-5 text-charcoal-600 group-has-[:checked]:text-sand-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                </svg>
+                            </div>
+                            <span class="block font-medium text-sm text-center">Compose</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Source -->
+        <section class="glass rounded-2xl shadow-soft border border-white/60 overflow-hidden animate-in relative">
+            <div class="px-8 py-5 border-b border-sand-200/60 bg-gradient-to-r from-sand-50/50 to-transparent">
+                <h2 class="font-display text-xl font-medium text-charcoal-800">Source</h2>
+            </div>
+            <div class="p-8 space-y-6">
+                <div>
+                    <label for="git_url" class="block text-sm font-medium text-charcoal-700 mb-2">Git Repository</label>
+                    <input type="text" name="git_url" id="git_url" value="{{.Project.GitURL}}"
+                        class="w-full px-4 py-3 bg-white/80 border border-sand-300 rounded-xl text-charcoal-800 placeholder-charcoal-400/50 shadow-inner-soft transition-all hover:border-sand-400 hover:bg-white font-mono text-sm"
+                        placeholder="https://github.com/user/repo.git">
+                </div>
+                <div class="grid grid-cols-2 gap-6">
+                    <div>
+                        <label for="branch" class="block text-sm font-medium text-charcoal-700 mb-2">Branch</label>
+                        <input type="text" name="branch" id="branch" value="{{if and .Project.Branch (ne .Project.Branch "main")}}{{.Project.Branch}}{{end}}"
+                            class="w-full px-4 py-3 bg-white/80 border border-sand-300 rounded-xl text-charcoal-800 placeholder-charcoal-400/50 shadow-inner-soft transition-all hover:border-sand-400 hover:bg-white"
+                            placeholder="Auto-detect">
+                    </div>
+                    <div>
+                        <label for="image" class="block text-sm font-medium text-charcoal-700 mb-2">Docker Image</label>
+                        <input type="text" name="image" id="image" value="{{.Project.Image}}"
+                            class="w-full px-4 py-3 bg-white/80 border border-sand-300 rounded-xl text-charcoal-800 placeholder-charcoal-400/50 shadow-inner-soft transition-all hover:border-sand-400 hover:bg-white font-mono text-sm"
+                            placeholder="nginx:latest">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Networking -->
+        <section class="glass rounded-2xl shadow-soft border border-white/60 overflow-hidden animate-in relative">
+            <div class="px-8 py-5 border-b border-sand-200/60 bg-gradient-to-r from-sand-50/50 to-transparent">
+                <h2 class="font-display text-xl font-medium text-charcoal-800">Networking</h2>
+            </div>
+            <div class="p-8 space-y-6">
+                <div>
+                    <label for="domain" class="block text-sm font-medium text-charcoal-700 mb-2">Custom Domain</label>
+                    <input type="text" name="domain" id="domain" value="{{.Project.Domain}}"
+                        class="w-full px-4 py-3 bg-white/80 border border-sand-300 rounded-xl text-charcoal-800 placeholder-charcoal-400/50 shadow-inner-soft transition-all hover:border-sand-400 hover:bg-white"
+                        placeholder="myapp.example.com">
+                </div>
+                <label class="flex items-start p-5 bg-white/60 border-2 border-sand-300 rounded-xl cursor-pointer transition-all hover:border-terracotta-400/50 hover:bg-white has-[:checked]:border-terracotta-500 has-[:checked]:bg-terracotta-50/50">
+                    <input type="checkbox" name="use_subdomain" id="use_subdomain" {{if .Project.UseSubdomain}}checked{{end}}
+                        class="w-5 h-5 mt-0.5 text-terracotta-500 bg-white border-sand-400 rounded focus:ring-terracotta-500">
+                    <div class="ml-4">
+                        <span class="block font-medium text-charcoal-700">Use auto-subdomain</span>
+                        <span class="block text-sm text-charcoal-400 mt-1">Available at <code class="px-1.5 py-0.5 bg-sand-200 rounded text-xs font-mono">{{if .Project.Name}}{{.Project.Name}}{{else}}project-name{{end}}.{{.BaseDomain}}</code></span>
+                    </div>
+                </label>
+            </div>
+        </section>
+
+        <!-- Environment Variables -->
+        <section class="glass rounded-2xl shadow-soft border border-white/60 overflow-hidden animate-in relative">
+            <div class="px-8 py-5 border-b border-sand-200/60 bg-gradient-to-r from-sand-50/50 to-transparent">
+                <h2 class="font-display text-xl font-medium text-charcoal-800">Environment</h2>
+            </div>
+            <div class="p-8">
+                <textarea name="env_vars" id="env_vars" rows="6"
+                    class="w-full px-4 py-3 bg-white/80 border border-sand-300 rounded-xl text-charcoal-800 placeholder-charcoal-400/50 shadow-inner-soft transition-all hover:border-sand-400 hover:bg-white font-mono text-sm resize-none"
+                    placeholder="DATABASE_URL=postgres://...&#10;API_KEY=secret">{{range $key, $value := .Project.EnvVars}}{{$key}}={{$value}}
+{{end}}</textarea>
+            </div>
+        </section>
+
+        <!-- Automation -->
+        <section class="glass rounded-2xl shadow-soft border border-white/60 overflow-hidden animate-in relative">
+            <div class="px-8 py-5 border-b border-sand-200/60 bg-gradient-to-r from-sand-50/50 to-transparent">
+                <h2 class="font-display text-xl font-medium text-charcoal-800">Automation</h2>
+            </div>
+            <div class="p-8">
+                <label class="flex items-start p-5 bg-white/60 border-2 border-sand-300 rounded-xl cursor-pointer transition-all hover:border-terracotta-400/50 hover:bg-white has-[:checked]:border-terracotta-500 has-[:checked]:bg-terracotta-50/50">
+                    <input type="checkbox" name="auto_deploy" id="auto_deploy" {{if .Project.AutoDeploy}}checked{{end}}
+                        class="w-5 h-5 mt-0.5 text-terracotta-500 bg-white border-sand-400 rounded focus:ring-terracotta-500">
+                    <div class="ml-4">
+                        <span class="block font-medium text-charcoal-700">Enable auto-deploy</span>
+                        <span class="block text-sm text-charcoal-400 mt-1">Automatically redeploy when changes are pushed</span>
+                    </div>
+                </label>
+            </div>
+        </section>
+
+        <!-- Actions -->
+        <div class="flex justify-between items-center pt-6 animate-in">
+            <a href="/projects/{{.Project.ID}}" class="px-6 py-3 text-charcoal-600 hover:text-charcoal-800 font-medium transition-colors">
+                Cancel
+            </a>
+            <button type="submit"
+                class="px-8 py-3 bg-gradient-to-r from-charcoal-800 to-charcoal-900 text-sand-100 rounded-xl font-medium shadow-medium hover:shadow-lifted hover:-translate-y-0.5 transition-all">
+                Save Changes
+            </button>
+        </div>
+    </form>
+    {{end}}
+</main>
+
+{{if .IsNew}}
+<script>
+    // Wizard state
+    let currentStep = 1;
+    const totalSteps = 5;
+    const baseDomain = '{{.BaseDomain}}';
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function() {
+        updateDeployType();
+        updateSubdomainPreview();
+
+        // Update subdomain preview on name change
+        document.getElementById('name').addEventListener('input', updateSubdomainPreview);
+    });
+
+    function updateDeployType() {
+        const deployType = document.querySelector('input[name="deploy_type"]:checked')?.value || 'image';
+        const imageFields = document.getElementById('image-fields');
+        const gitFields = document.getElementById('git-fields');
+        const sourceDesc = document.getElementById('source-description');
+        const gitUrlHint = document.getElementById('git-url-hint');
+
+        if (deployType === 'image') {
+            imageFields.classList.remove('hidden');
+            gitFields.classList.add('hidden');
+            sourceDesc.textContent = 'Specify the Docker image to deploy';
+        } else if (deployType === 'dockerfile') {
+            imageFields.classList.add('hidden');
+            gitFields.classList.remove('hidden');
+            sourceDesc.textContent = 'Configure your Git repository containing a Dockerfile';
+            gitUrlHint.textContent = 'HTTPS or SSH URL to your repository containing a Dockerfile';
+        } else {
+            imageFields.classList.add('hidden');
+            gitFields.classList.remove('hidden');
+            sourceDesc.textContent = 'Configure your Git repository with docker-compose.yml';
+            gitUrlHint.textContent = 'HTTPS or SSH URL to your repository containing docker-compose.yml';
+        }
+    }
+
+    function updateSubdomainPreview() {
+        const name = document.getElementById('name').value || 'project-name';
+        document.getElementById('subdomain-preview').textContent = name;
+    }
+
+    function validateStep(step) {
+        switch(step) {
+            case 1:
+                // Deploy type always has a default selection
+                return true;
+            case 2:
+                const deployType = document.querySelector('input[name="deploy_type"]:checked')?.value;
+                if (deployType === 'image') {
+                    const image = document.getElementById('image').value.trim();
+                    if (!image) {
+                        shakeInput('image');
+                        return false;
+                    }
+                } else {
+                    const gitUrl = document.getElementById('git_url').value.trim();
+                    if (!gitUrl) {
+                        shakeInput('git_url');
+                        return false;
+                    }
+                }
+                return true;
+            case 3:
+                const name = document.getElementById('name').value.trim();
+                if (!name) {
+                    shakeInput('name');
+                    return false;
+                }
+                return true;
+            case 4:
+                // Networking is optional
+                return true;
+            case 5:
+                return true;
+            default:
+                return true;
+        }
+    }
+
+    function shakeInput(inputId) {
+        const input = document.getElementById(inputId);
+        input.classList.add('ring-2', 'ring-red-400');
+        input.style.animation = 'shake 0.5s ease-in-out';
+        input.focus();
+
+        setTimeout(() => {
+            input.classList.remove('ring-2', 'ring-red-400');
+            input.style.animation = '';
+        }, 500);
+    }
+
+    function nextStep() {
+        if (!validateStep(currentStep)) return;
+
+        if (currentStep < totalSteps) {
+            goToStep(currentStep + 1);
+        }
+    }
+
+    function prevStep() {
+        if (currentStep > 1) {
+            goToStep(currentStep - 1, true);
+        }
+    }
+
+    function goToStep(step, isBack = false) {
+        // Only allow going to completed steps or next step
+        if (step > currentStep + 1) return;
+        if (step < 1 || step > totalSteps) return;
+
+        // Validate all steps up to the target (except when going back)
+        if (!isBack && step > currentStep) {
+            for (let i = currentStep; i < step; i++) {
+                if (!validateStep(i)) return;
+            }
+        }
+
+        const oldStep = currentStep;
+        currentStep = step;
+
+        // Update step visibility with animation
+        const steps = document.querySelectorAll('.wizard-step');
+        steps.forEach(s => {
+            const stepNum = parseInt(s.dataset.step);
+            if (stepNum === currentStep) {
+                s.classList.remove('exit-left', 'enter-right');
+                s.classList.add('active');
+            } else {
+                s.classList.remove('active');
+                if (stepNum < currentStep) {
+                    s.classList.add('exit-left');
+                    s.classList.remove('enter-right');
+                } else {
+                    s.classList.add('enter-right');
+                    s.classList.remove('exit-left');
+                }
+            }
+        });
+
+        // Update progress indicator
+        updateProgressIndicator();
+
+        // Update navigation buttons
+        updateNavButtons();
+
+        // Update review if on last step
+        if (currentStep === 5) {
+            updateReviewSummary();
+        }
+    }
+
+    function updateProgressIndicator() {
+        const progressSteps = document.querySelectorAll('.progress-step');
+        const progressLines = document.querySelectorAll('.progress-line');
+
+        progressSteps.forEach(ps => {
+            const stepNum = parseInt(ps.dataset.step);
+            const stepCircle = ps.querySelector('.step-circle');
+            const stepNumber = ps.querySelector('.step-number');
+            const stepCheck = ps.querySelector('.step-check');
+            const stepLabel = ps.querySelector('span:last-child');
+
+            ps.classList.remove('completed', 'current', 'upcoming');
+
+            if (stepNum < currentStep) {
+                ps.classList.add('completed');
+                stepNumber.classList.add('hidden');
+                stepCheck.classList.remove('hidden');
+                stepLabel.classList.remove('text-charcoal-400');
+                stepLabel.classList.add('text-charcoal-600');
+            } else if (stepNum === currentStep) {
+                ps.classList.add('current');
+                stepNumber.classList.remove('hidden');
+                stepCheck.classList.add('hidden');
+                stepLabel.classList.remove('text-charcoal-400');
+                stepLabel.classList.add('text-charcoal-600');
+            } else {
+                ps.classList.add('upcoming');
+                stepNumber.classList.remove('hidden');
+                stepCheck.classList.add('hidden');
+                stepLabel.classList.add('text-charcoal-400');
+                stepLabel.classList.remove('text-charcoal-600');
+            }
+        });
+
+        progressLines.forEach(pl => {
+            const lineNum = parseInt(pl.dataset.line);
+            if (lineNum < currentStep) {
+                pl.classList.add('completed');
+            } else {
+                pl.classList.remove('completed');
+            }
+        });
+    }
+
+    function updateNavButtons() {
+        const btnBack = document.getElementById('btn-back');
+        const btnNext = document.getElementById('btn-next');
+        const btnSubmit = document.getElementById('btn-submit');
+
+        // Show/hide back button
+        if (currentStep === 1) {
+            btnBack.classList.add('hidden');
+        } else {
+            btnBack.classList.remove('hidden');
+        }
+
+        // Show/hide next vs submit
+        if (currentStep === totalSteps) {
+            btnNext.classList.add('hidden');
+            btnSubmit.classList.remove('hidden');
+        } else {
+            btnNext.classList.remove('hidden');
+            btnSubmit.classList.add('hidden');
+        }
+    }
+
+    function updateReviewSummary() {
+        const deployType = document.querySelector('input[name="deploy_type"]:checked')?.value || 'image';
+        const name = document.getElementById('name').value || '-';
+        const port = document.getElementById('port').value || '80';
+        const domain = document.getElementById('domain').value;
+        const useSubdomain = document.getElementById('use_subdomain').checked;
+        const envVars = document.getElementById('env_vars').value.trim();
+
+        // Deploy type
+        const typeLabels = { 'image': 'Docker Image', 'dockerfile': 'Dockerfile', 'compose': 'Docker Compose' };
+        document.getElementById('review-type').textContent = typeLabels[deployType] || deployType;
+
+        // Source
+        let source = '-';
+        if (deployType === 'image') {
+            source = document.getElementById('image').value || '-';
+        } else {
+            const gitUrl = document.getElementById('git_url').value || '-';
+            const branch = document.getElementById('branch').value || 'main';
+            source = gitUrl + (branch ? ` (${branch})` : '');
+        }
+        document.getElementById('review-source').textContent = source;
+
+        // Name
+        document.getElementById('review-name').textContent = name;
+
+        // Port
+        document.getElementById('review-port').textContent = port || 'Not set';
+
+        // Domain
+        let domainDisplay = '-';
+        if (domain) {
+            domainDisplay = domain;
+        } else if (useSubdomain && name !== '-') {
+            domainDisplay = name + '.' + baseDomain;
+        } else if (useSubdomain) {
+            domainDisplay = 'Auto-subdomain enabled';
+        }
+        document.getElementById('review-domain').textContent = domainDisplay;
+
+        // Env vars
+        const envLines = envVars.split('\n').filter(l => l.trim());
+        if (envLines.length > 0) {
+            document.getElementById('review-env').textContent = envLines.length + ' variable' + (envLines.length > 1 ? 's' : '') + ' configured';
+        } else {
+            document.getElementById('review-env').textContent = 'None configured';
+        }
+    }
+
+    // Add shake animation
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+            20%, 40%, 60%, 80% { transform: translateX(4px); }
+        }
+    `;
+    document.head.appendChild(style);
+</script>
+{{end}}
+{{end}}

@@ -1,0 +1,51 @@
+version: "3.8"
+
+# Development docker-compose for local testing
+# Uses localhost and skips SSL
+
+services:
+  traefik:
+    image: traefik:v3.0
+    command:
+      - "--api.dashboard=true"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=slimdeploy"
+      - "--entrypoints.web.address=:80"
+      - "--log.level=DEBUG"
+    ports:
+      - "80:80"
+      - "8081:8080"  # Traefik dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - slimdeploy
+    restart: unless-stopped
+
+  slimdeploy:
+    build: .
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./data:/app/data
+      - ./deployments:/app/deployments
+    environment:
+      - DOMAIN=slimdeploy.localhost
+      - BASE_DOMAIN=localhost
+      - SLIMDEPLOY_PASSWORD=admin
+      - WATCH_INTERVAL=30s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.slimdeploy.rule=Host(`slimdeploy.localhost`)"
+      - "traefik.http.routers.slimdeploy.entrypoints=web"
+      - "traefik.http.services.slimdeploy.loadbalancer.server.port=8080"
+    networks:
+      - slimdeploy
+    restart: unless-stopped
+    depends_on:
+      - traefik
+
+networks:
+  slimdeploy:
+    name: slimdeploy
+    driver: bridge
